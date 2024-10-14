@@ -11,6 +11,12 @@ RUN dotnet restore
 WORKDIR /app
 RUN dotnet publish -c release -o /out --no-restore
 
+WORKDIR /app/ClientApp
+RUN npm run build
+WORKDIR /app
+RUN mkdir /out/wwwroot
+RUN cp -r ClientApp/out/* /out/wwwroot
+
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 COPY --from=build /out .
