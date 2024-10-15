@@ -1,23 +1,22 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build-service
 WORKDIR /app
 
-RUN curl --silent --location https://deb.nodesource.com/setup_19.x | bash - \
-&& apt-get install -y nodejs \
-&& npm update -g npm 
-
-COPY ./src .
+COPY ./src/service .
 RUN dotnet restore
 
 WORKDIR /app
 RUN dotnet publish -c release -o /out --no-restore
 
-WORKDIR /app/ClientApp
-RUN npm run build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build-client
 WORKDIR /app
-RUN mkdir /out/wwwroot
-RUN cp -r ClientApp/out/* /out/wwwroot
+
+RUN curl --silent --location https://deb.nodesource.com/setup_20.x | bash - \
+&& apt-get install -y nodejs
+COPY ./src/client .
+RUN npm run build
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
-COPY --from=build /out .
+COPY --from=build-service /out .
+COPY --from=build-client /app/out ./wwwroot
 ENTRYPOINT ["dotnet", "conlang.dll"]
